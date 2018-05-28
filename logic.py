@@ -1,19 +1,20 @@
 """
 Mini-max Tic-Tac-Toe Player
+File with the logic for the game
+Author: Rafael Pacheco Ribeiro
 """
 
-import poc_ttt_gui
-import poc_ttt_provided as provided
+from board import *
 from random import randrange
 
 # Set timeout, as mini-max can take a long time
-import codeskulptor
-codeskulptor.set_timeout(60)
+# import codeskulptor
+# codeskulptor.set_timeout(60)
 
 # SCORING VALUES - DO NOT MODIFY
-SCORES = {provided.PLAYERX: 1,
-          provided.DRAW: 0,
-          provided.PLAYERO: -1}
+SCORES = {consts["PLAYERX"] : 1,
+          consts["DRAW"] : 0,
+          consts["PLAYERO"] : -1}
 
 def mm_move(board, player):
     """
@@ -33,22 +34,22 @@ def mm_move(board, player):
         scores = []
         for square in empty_squares:
             temp.move(square[0], square[1], player)
-            score, dummy_tuple = mm_move(temp, provided.switch_player(player))
+            score, dummy_tuple = mm_move(temp, switch_player(player))
             squares.append(square)
             scores.append(score)
             temp = board.clone()
         result = []
-        print scores
+        # print(scores)
         for score, square in zip(scores, squares):
             result.append((score, square))
-        if player == provided.PLAYERX:
+        if player == consts["PLAYERX"]:
             return max(result)
         else:
             return min(result)
 
-#board = provided.TTTBoard(3, False, [[provided.EMPTY, provided.PLAYERX, provided.EMPTY], [provided.PLAYERO, provided.PLAYERX, provided.EMPTY], [provided.PLAYERO, provided.EMPTY, provided.EMPTY]])
-#print board
-#print mm_move(board, provided.PLAYERX)
+board = TTTBoard(3, False, [[consts["EMPTY"], consts["EMPTY"], consts["EMPTY"]], [consts["PLAYERO"], consts["PLAYERX"], consts["PLAYERX"]], [consts["PLAYERO"], consts["EMPTY"], consts["EMPTY"]]])
+print(board)
+print(mm_move(board, consts["PLAYERX"]))
 
 #PLAYERX = provided.PLAYERX
 #PLAYERO = provided.PLAYERO
