@@ -10,6 +10,7 @@ BORDER = 15
 TILE_SIZE = 120
 CELLS = 3
 BLACK = (0, 0, 0)
+RED = (255, 30, 30)
 BACK = (187, 173, 160)
 TILE = (157, 143, 130)
 
@@ -17,38 +18,10 @@ def main():
     """
     Function to run the graphics and main logic
     """
-    # game = TTTBoard(3)
-    game = TTTBoard(3, False, [[consts["EMPTY"], consts["EMPTY"], consts["EMPTY"]], [consts["PLAYERO"], consts["PLAYERX"], consts["PLAYERX"]], [consts["PLAYERO"], consts["EMPTY"], consts["EMPTY"]]])
+    game = TTTBoard(3)
     main = Main(game)
     while not main._done:
         main.loop()
-
-# def load_image(file, colorkey=None, size=(50, 50)):
-#     fullname = os.path.join("images", file)
-#     img = pygame.image.load(fullname)
-#     img = img.convert()
-#     if colorkey is not None:
-#         if colorkey is -1:
-#             colorkey = img.get_at((0,0))
-#         img.set_colorkey(colorkey, RLEACCEL)
-#     return pygame.transform.scale(img, size)
-#
-# def load_sound(name, music=False):
-#     class NoneSound:
-#         def play(self): pass
-#     if music:
-#         folder = "music"
-#     else:
-#         folder = "sounds"
-#     fullname = os.path.join(folder, name)
-#     return pygame.mixer.Sound(fullname)
-#
-# def load_font(file, size):
-#     if file is not None:
-#         fullname = os.path.join("fonts", file)
-#     else:
-#         fullname = None
-#     return pygame.font.Font(fullname, size)
 
 class Main:
     """
@@ -69,8 +42,12 @@ class Main:
 
         # instantiate data members
         self._game = game
+        self._player = consts["PLAYERX"]
         self._rows, self._cols = CELLS, CELLS
+        self._coord = (-1, -1)
+        self._font = pygame.font.SysFont("Arial", 100)
         self._clock = pygame.time.Clock()
+        self._end = False
         self._done = False
 
         # instantiante data members related to graphics
@@ -88,46 +65,92 @@ class Main:
         self._otile = self._tile.copy()
         pygame.draw.circle(self._otile, BLACK, (int(TILE_SIZE / 2), int(TILE_SIZE / 2)), int(TILE_SIZE / 2.5), 10)
 
+
     def draw(self):
         """
         Draws the game into the canvas
         """
-        for row in range(self._rows):
-            for col in range(self._cols):
-                # Create a tile and draw it on the board
-                top = BORDER + row * (TILE_SIZE + BORDER)
-                left = BORDER + col * (TILE_SIZE + BORDER)
-                # self._screen.blit(self._tile, (top, left))
+        if self._end:
+            # If game has ended, print winner (or draw) in the screen
+            result = self._game.check_win()
+            if result == consts["PLAYERX"]:
+                string = "X WINS"
+            elif result == consts["PLAYERO"]:
+                string = "O WINS"
+            else:
+                string = "DRAW"
+            phrase = self._font.render(string, True, RED)
+            size = self._font.size(string)
+            width = TILE_SIZE * 3 + BORDER * 4
+            self._screen.blit(phrase, ((width - size[0]) / 2, (width - size[1]) / 2))
 
-                # If there is a X or an O, draw it on tile
-                if self._game.square(row, col) == consts['PLAYERX']:
-                    self._screen.blit(self._xtile, (top, left))
-                elif self._game.square(row, col) == consts['PLAYERO']:
-                    self._screen.blit(self._otile, (top, left))
-                else:
-                    self._screen.blit(self._tile, (top, left))
+        else:
+            for row in range(self._rows):
+                for col in range(self._cols):
+                    # Create a tile and draw it on the board
+                    top = BORDER + row * (TILE_SIZE + BORDER)
+                    left = BORDER + col * (TILE_SIZE + BORDER)
 
-                # if num != 0:
-                #     if num in [2, 4]:
-                #         label = self._font.render(str(num), True, FONT)
-                #     else:
-                #         label = self._font.render(str(num), True, FONT2)
-                #     label_size = self._font.size(str(num))
-                #     offset = BORDER / 2 - 2
-                #     self._screen.blit(label, (top + (TILE_SIZE - label_size[0]) / 2, left - offset + (TILE_SIZE - label_size[1]) / 2 + offset / 2))
+                    # If there is a X or an O, draw it on tile
+                    if self._game.square(row, col) == consts['PLAYERX']:
+                        self._screen.blit(self._xtile, (top, left))
+                    elif self._game.square(row, col) == consts['PLAYERO']:
+                        self._screen.blit(self._otile, (top, left))
+                    else:
+                        self._screen.blit(self._tile, (top, left))
 
     def loop(self):
         """
         Method that runs the main loop for the graphics
         """
+        # Check for winning/losing/draw conditions
+        result = self._game.check_win()
+        if result:
+            self._end = True
+
+        # Pause the game for one second before player O move
+        if self._player == consts["PLAYERO"]:
+            pygame.time.wait(1000)
+            self.enemy_move()
+
         for event in pygame.event.get():
+
+            # If press EXIT button, exit the game
             if event.type == pygame.QUIT:
                 self._done = True
+
+            # Get the position of the mouse when click
+            if event.type == pygame.MOUSEBUTTONDOWN and self._player == consts["PLAYERX"]:
+                # Get X coordinate
+                x = int(pygame.mouse.get_pos()[0] / (TILE_SIZE + BORDER))
+                xoff = pygame.mouse.get_pos()[0] % (TILE_SIZE + BORDER)
+                if xoff <= BORDER:
+                    x = -1
+                # Get y coordinate
+                y = int(pygame.mouse.get_pos()[1] / (TILE_SIZE + BORDER))
+                yoff = pygame.mouse.get_pos()[1] % (TILE_SIZE + BORDER)
+                if yoff <= BORDER:
+                    y = -1
+                # Update coordinate
+                self._coord = (x, y)
+
+            # Mark an X on the clicked tile, if valid
+            if event.type == pygame.MOUSEBUTTONUP and self._player == consts["PLAYERX"]:
+                if -1 not in self._coord:
+                    self._game.move(self._coord[0], self._coord[1], consts["PLAYERX"])
+                    self._player = switch_player(self._player)
+                self._coord = (-1, -1)
 
         self.draw()
         pygame.display.flip()
 
-
+    def enemy_move(self):
+        """
+        Make a move for the O player
+        """
+        dest = mm_move(self._game, consts["PLAYERO"])[1]
+        self._game.move(dest[0], dest[1], consts["PLAYERO"])
+        self._player = switch_player(self._player)
 
 if __name__ == "__main__":
     main()
